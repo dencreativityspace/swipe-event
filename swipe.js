@@ -37,6 +37,7 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
     Object.defineProperty(defaults, 'threshold', { configurable: false, writable: false });
     Object.defineProperty(defaults, 'allowedTime', { configurable: false, writable: false });
 
+    // Object cloning
     let swipe = JSON.parse(JSON.stringify(defaults));
 
     element.addEventListener('touchstart', (e) => {
@@ -127,14 +128,17 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
                 );
 
                 if (clickedElement !== null) {
-                    let clickEvent = document.createEvent("MouseEvent");
+                    let clickEvent = document.createEvent('MouseEvent');
                     clickEvent.initMouseEvent(
-                        "click",
-                        true /* bubble */, true /* cancelable */,
-                        window, null,
+                        'click',
+                        true, /* bubble */
+                        true, /* cancelable */
+                        window,
+                        null,
                         swipe.end.touch.pageX, swipe.end.touch.pageY, 0, 0, /* coordinates */
                         false, false, false, false, /* modifier keys */
-                        0 /*left*/, null
+                        0, /*left*/
+                        null
                     );
                     clickedElement.dispatchEvent(clickEvent);
                     clickedElement.focus();
