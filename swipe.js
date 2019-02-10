@@ -111,7 +111,18 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
                         }
 
                         if ((swipe.direction && swipe.direction !== null) && (swipe.distance.x !== 0 && swipe.distance.y !== 0)) {
-                            element.dispatchEvent(new CustomEvent('swipe', { detail: swipe }));
+                            let swipeEvent = null;
+                            
+                            if (typeof window.CustomEvent !== 'function') {
+                                swipeEvent = document.createEvent('swipe');
+
+                                swipeEvent.initCustomEvent('swipe', false, false, swipe);
+                            }
+                            else {
+                                swipeEvent = new CustomEvent('swipe', { detail: swipe });
+                            }
+                            
+                            element.dispatchEvent(swipeEvent);
                         }
                         else {
                             clicked = true;
