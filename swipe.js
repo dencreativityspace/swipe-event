@@ -1,26 +1,17 @@
-function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, allowedTime = 300, itemSelector = '.scroll', currentSelector = '.current', activeSelector = '.active', closeButtonSelector = '.close-active-post'} = {}) {
+function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 300, itemSelector = '.item', activeSelector = '.active'} = {}) {
     if (typeof element === 'string') {
         element = document.querySelector(element);
     }
-    
+
     if (!(element instanceof HTMLElement)) {
         throw new Error('The touchable element is invalid.');
     }
-    
+
     let swiping = false;
-    
-    let activeClass = activeSelector.substr(1);
-    
-    const directions = [
-        'left',
-        'right',
-        'up',
-        'down'
-    ];
-    
+
     let clicked = false;
-    
-    let swipe = {
+
+    const defaults = {
         direction: undefined, // left; right; down; up;
         duration: 0,
         distance: {
@@ -40,15 +31,14 @@ function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, 
             touch: undefined
         },
         threshold: threshold, //required min distance traveled to be considered swipe
-        restraint: restraint, // maximum distance allowed at the same time in perpendicular direction
         allowedTime: allowedTime // maximum time allowed to travel that distance
     };
 
-    Object.defineProperty(swipe, 'threshold', { configurable: false, writable: false });
-    Object.defineProperty(swipe, 'restraint', { configurable: false, writable: false });
-    Object.defineProperty(swipe, 'allowedTime', { configurable: false, writable: false });
-    
-    const defaults = JSON.parse(JSON.stringify(swipe));
+    Object.defineProperty(defaults, 'threshold', { configurable: false, writable: false });
+    Object.defineProperty(defaults, 'allowedTime', { configurable: false, writable: false });
+
+    // Object cloning
+    let swipe = JSON.parse(JSON.stringify(defaults));
 
     element.addEventListener('touchstart', (e) => {
         if (!element.querySelector(itemSelector + activeSelector)) {
@@ -57,7 +47,6 @@ function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, 
             clicked = false;
 
             if (!swiping) {
-                console.log('swiping');
                 swipe = defaults;
 
                 swipe.start.touch = e.changedTouches[0];
@@ -73,18 +62,18 @@ function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, 
                 swiping = true;
             }
         }
-        
-    });
+
+    }, {passive: false});
 
     element.addEventListener('touchmove', (e) => {
         if (!element.querySelector(itemSelector + activeSelector)) {
             e.preventDefault();
-        
+
             if (!swiping) {
                 swipe.direction = null;
             }
         }
-    });
+    }, {passive: false});
 
     element.addEventListener('touchend', (e) => {
         if (!element.querySelector(itemSelector + activeSelector)) {
@@ -104,17 +93,24 @@ function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, 
                 swipe.distance.y = swipe.end.y - swipe.start.y;
 
                 if (swipe.duration <= swipe.allowedTime) {
-                    if (Math.abs(swipe.distance.x) >= swipe.threshold && Math.abs(swipe.distance.y) <= swipe.restraint) { // 2nd condition for horizontal swipe met
-                        swipe.direction = (swipe.distance.x < 0) ? 'left' : 'right'; // if dist traveled is negative, it indicates left swipe
-                    }
-                    else if (Math.abs(swipe.distance.y) >= swipe.threshold && Math.abs(swipe.distance.x) <= swipe.restraint) { // 2nd condition for vertical swipe met
-                        swipe.direction = (swipe.distance.y < 0) ? 'up' : 'down'; // if dist traveled is negative, it indicates up swipe
-                    }
+                    if (Math.sqrt(Math.pow(swipe.distance.x, 2) + Math.pow(swipe.distance.y, 2)) >= swipe.threshold)
+                    {
+                        if (Math.abs(swipe.distance.x) >= Math.abs(swipe.distance.y)) { // 2nd condition for horizontal swipe met
+                            swipe.direction = (swipe.distance.x < 0) ? 'left' : 'right'; // if dist traveled is negative, it indicates left swipe
+                        }
+                        if (Math.abs(swipe.distance.y) >= Math.abs(swipe.distance.x)) { // 2nd condition for vertical swipe met
+                            swipe.direction = (swipe.distance.y < 0) ? 'up' : 'down'; // if dist traveled is negative, it indicates up swipe
+                        }
 
-                    if ((swipe.direction && swipe.direction !== null) && (swipe.distance.x !== 0 && swipe.distance.y !== 0)) {
-                        element.dispatchEvent(new CustomEvent('swipe', { detail: swipe }));
+                        if ((swipe.direction && swipe.direction !== null) && (swipe.distance.x !== 0 && swipe.distance.y !== 0)) {
+                            element.dispatchEvent(new CustomEvent('swipe', { detail: swipe }));
+                        }
+                        else {
+                            clicked = true;
+                        }
                     }
-                    else {
+                    else
+                    {
                         clicked = true;
                     }
                 }
@@ -126,13 +122,26 @@ function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, 
             }
 
             if (clicked) {
-                let clickedElement = element.querySelector(itemSelector + currentSelector);
+                let clickedElement = document.elementFromPoint(
+                    swipe.end.touch.pageX,
+                    swipe.end.touch.pageY
+                );
 
-                if (!clickedElement.classList.contains(activeClass)) {
-                    clickedElement.click();
-                }
-                else {
-                    clickedElement.querySelector(closeButtonSelector).click();
+                if (clickedElement !== null) {
+                    let clickEvent = document.createEvent('MouseEvent');
+                    clickEvent.initMouseEvent(
+                        'click',
+                        true, /* bubble */
+                        true, /* cancelable */
+                        window,
+                        null,
+                        swipe.end.touch.pageX, swipe.end.touch.pageY, 0, 0, /* coordinates */
+                        false, false, false, false, /* modifier keys */
+                        0, /*left*/
+                        null
+                    );
+                    clickedElement.dispatchEvent(clickEvent);
+                    clickedElement.focus();
                 }
 
                 clicked = false;
@@ -140,5 +149,7 @@ function attachSwipeEvent({element = undefined, threshold = 85, restraint = 75, 
 
             swipe = defaults;
         }
-    });
+    }, {passive: false});
+
+    return true;
 }
