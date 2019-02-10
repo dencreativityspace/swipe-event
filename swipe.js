@@ -1,10 +1,18 @@
-function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 300, itemSelector = '.item', activeSelector = '.active'} = {}) {
+function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 300, itemSelector, activeSelector} = {}) {
     if (typeof element === 'string') {
         element = document.querySelector(element);
     }
 
     if (!(element instanceof HTMLElement)) {
         throw new Error('The touchable element is invalid.');
+    }
+    
+    if (!itemSelector) {
+        throw new Error('An item selector must be provided. Items must be child of ' + element + '.');
+    }
+    
+    if (!activeSelector) {
+        throw new Error('An active selector must be provided. It must be applicable to items.');
     }
 
     let swiping = false;
