@@ -1,4 +1,4 @@
-function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 300, itemSelector, activeSelector} = {}) {
+function attachSwipeEvent({element, threshold = 85, allowedTime = 300, itemSelector, activeSelector} = {}) {
     if (typeof element === 'string') {
         element = document.querySelector(element);
     }
@@ -6,11 +6,11 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
     if (!(element instanceof HTMLElement)) {
         throw new Error('The touchable element is invalid.');
     }
-    
+
     if (!itemSelector) {
         throw new Error('An item selector must be provided. Items must be child of ' + element + '.');
     }
-    
+
     if (!activeSelector) {
         throw new Error('An active selector must be provided. It must be applicable to items.');
     }
@@ -83,6 +83,15 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
         }
     }, {passive: false});
 
+    element.addEventListener('touchabort', (e) => {
+        if (!element.querySelector(itemSelector + activeSelector)) {
+            e.preventDefault();
+
+            swiping = false;
+            swipe.direction = null;
+        }
+    }, {passive: false});
+
     element.addEventListener('touchend', (e) => {
         if (!element.querySelector(itemSelector + activeSelector)) {
             e.preventDefault();
@@ -112,7 +121,7 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
 
                         if ((swipe.direction && swipe.direction !== null) && (swipe.distance.x !== 0 && swipe.distance.y !== 0)) {
                             let swipeEvent = null;
-                            
+
                             if (typeof window.CustomEvent !== 'function') {
                                 swipeEvent = document.createEvent('swipe');
 
@@ -121,7 +130,7 @@ function attachSwipeEvent({element = undefined, threshold = 85, allowedTime = 30
                             else {
                                 swipeEvent = new CustomEvent('swipe', { detail: swipe });
                             }
-                            
+
                             element.dispatchEvent(swipeEvent);
                         }
                         else {
